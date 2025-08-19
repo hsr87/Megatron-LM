@@ -19,7 +19,6 @@ from megatron.training.initialize import initialize_megatron
 from megatron.training.training import pretrain
 from megatron.legacy.model import GPTModel as LegacyGPTModel
 from megatron.core.transformer.module import MegatronModule
-from megatron.core.models.common.rotary_pos_embedding import RotaryEmbedding
 from megatron.core.models.common.embeddings.language_model_embedding import LanguageModelEmbedding
 from megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
 from megatron.core.datasets.blended_megatron_dataset_builder import BlendedMegatronDatasetBuilder
