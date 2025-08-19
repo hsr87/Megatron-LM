@@ -39,22 +39,8 @@ def model_provider(pre_process=True, post_process=True):
     """
     args = get_args()
     
-    # Override with Qwen3 8B specific parameters
-    args.hidden_size = 4096
-    args.num_layers = 64
-    args.num_attention_heads = 32
-    args.num_key_value_heads = 8  # GQA
-    args.ffn_hidden_size = 14336
-    args.max_position_embeddings = 131072
-    args.vocab_size = 152064
-    args.rotary_base = 1000000
-    args.norm_epsilon = 1e-6
-    args.use_rotary_position_embeddings = True
-    args.rotary_interleaved = False
-    args.swiglu = True
-    args.normalization = 'RMSNorm'
-    args.add_bias_linear = False
-    args.untie_embeddings_and_output_weights = True
+    # Use the values from command line arguments instead of hardcoding
+    # The sbatch script already sets these values correctly
     
     print_rank_0('Building Qwen3 8B model ...')
     
@@ -70,8 +56,10 @@ def model_provider(pre_process=True, post_process=True):
         )
     else:
         transformer_layer_spec = get_gpt_layer_with_transformer_engine_spec(
-            args.num_experts, args.moe_grouped_gemm,
-            args.qk_layernorm, args.multi_query_attention
+            args.num_experts if hasattr(args, 'num_experts') else 0,
+            args.moe_grouped_gemm if hasattr(args, 'moe_grouped_gemm') else False,
+            args.qk_layernorm if hasattr(args, 'qk_layernorm') else False,
+            args.multi_query_attention if hasattr(args, 'multi_query_attention') else False
         )
         
         model = GPTModel(
@@ -98,7 +86,8 @@ def core_gpt_config_from_args(args):
     
     # Qwen3 uses SwiGLU activation
     if args.swiglu:
-        args.ffn_hidden_size = args.ffn_hidden_size * 2 // 3
+        # For SwiGLU, the intermediate size is already correct (14336)
+        # Don't modify it here
         activation = 'swiglu'
     else:
         activation = 'gelu'
@@ -115,7 +104,7 @@ def core_gpt_config_from_args(args):
         ffn_hidden_size=args.ffn_hidden_size,
         num_attention_heads=args.num_attention_heads,
         num_key_value_heads=args.num_key_value_heads if args.num_key_value_heads else args.num_attention_heads,
-        kv_channels=args.kv_channels,
+        kv_channels=args.kv_channels if hasattr(args, 'kv_channels') else None,
         init_method_std=args.init_method_std,
         hidden_dropout=args.hidden_dropout,
         attention_dropout=args.attention_dropout,
@@ -309,15 +298,10 @@ def add_qwen3_args(parser):
     """Add Qwen3-specific arguments."""
     group = parser.add_argument_group(title='Qwen3')
     
+    # Most arguments are already defined in megatron/training/arguments.py
+    # Only add truly Qwen3-specific arguments here if needed
     group.add_argument('--num-key-value-heads', type=int, default=None,
                       help='Number of key-value heads for GQA. Default is None (MHA).')
-    group.add_argument('--normalization', type=str, default='LayerNorm',
-                      choices=['LayerNorm', 'RMSNorm'],
-                      help='Normalization type')
-    group.add_argument('--swiglu', action='store_true',
-                      help='Use SwiGLU activation')
-    group.add_argument('--untie-embeddings-and-output-weights', action='store_true',
-                      help='Untie embeddings and output weights')
     
     return parser
 
