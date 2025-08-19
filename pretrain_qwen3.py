@@ -311,8 +311,6 @@ def add_qwen3_args(parser):
     
     group.add_argument('--num-key-value-heads', type=int, default=None,
                       help='Number of key-value heads for GQA. Default is None (MHA).')
-    group.add_argument('--rotary-base', type=float, default=10000,
-                      help='Base for rotary position embeddings')
     group.add_argument('--normalization', type=str, default='LayerNorm',
                       choices=['LayerNorm', 'RMSNorm'],
                       help='Normalization type')
